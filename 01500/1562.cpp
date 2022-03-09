@@ -2,28 +2,27 @@
 //-------------------------------------------------------------------
 #include <iostream>
 #include <vector>
-#define ll long long
-typedef std::vector<ll> vl;
-typedef std::vector<vl> vvl;
+typedef std::vector<int> vi;
+typedef std::vector<vi> vvi;
 
 class Solve
 {
 public:
 	Solve(int n) :N(n)
 	{
-		DP.resize(10, vvl(N, vl(1024,-1)));   //[10][N][1024]
-		subDP.resize(N - 9, vl(10));         //[N-9][10]
-	
+		DP.resize(10, vvi(N, vi(1024, -1)));   //[10][N][1024]
+		subDP.resize(N - 9, vi(10));         //[N-9][10]
+
 		FillsubDP();
 
 		for (int i = 1; i < 10; i++)
 		{
-			ans += FillDP(i,N - 1,0);
+			ans += FillDP(i, N - 1, 0);
 			ans %= div;
 		}
 	}
 
-	ll FillDP(int now, int depth, int visitbit)
+	int FillDP(int now, int depth, int visitbit)
 	{
 		visitbit |= (1 << now);
 		if (DP[now][depth][visitbit] != -1)
@@ -40,11 +39,16 @@ public:
 
 		DP[now][depth][visitbit] = 0;
 		if (now != 9)
+		{
 			DP[now][depth][visitbit] += FillDP(now + 1, depth - 1, visitbit);
+			DP[now][depth][visitbit] %= div;
+		}
 		if (now != 0)
+		{
 			DP[now][depth][visitbit] += FillDP(now - 1, depth - 1, visitbit);
+			DP[now][depth][visitbit] %= div;
+		}
 
-		DP[now][depth][visitbit] %= div;
 		return DP[now][depth][visitbit];
 	}
 
@@ -65,20 +69,15 @@ public:
 
 	void Printans()
 	{
-		printf("%lld", ans);
-	}
-
-	ll Putans()
-	{
-		return ans;
+		printf("%d", ans);
 	}
 
 private:
 	const int div = 1'000'000'000;
 	int N;
-	ll ans = 0;
-	std::vector<vvl> DP;
-	vvl subDP;
+	int ans = 0;
+	std::vector<vvi> DP;
+	vvi subDP;
 };
 
 int main()
