@@ -110,19 +110,22 @@ private:
 		}
 	}
 
-	void update(int l, int r, bool sign) {
+	void update(int l, int r, bool sign)
+	{
 		int l0 = l, r0 = r;
 
 		if (sign)
 		{
-			for (; l != r; l >>= 1, r >>= 1) {
+			for (; l != r; l >>= 1, r >>= 1)
+			{
 				if (l & 1) applyP(l++);
 				if (r & 1) applyP(--r);
 			}
 		}
 		else
 		{
-			for (; l != r; l >>= 1, r >>= 1) {
+			for (; l != r; l >>= 1, r >>= 1)
+			{
 				if (l & 1) applyN(l++);
 				if (r & 1) applyN(--r);
 			}
@@ -145,13 +148,21 @@ private:
 	}
 
 	inline void applyP(int i) {
-		mCnt[i]++;
-		mTree[i] = mComp[i];
+		if (mCnt[i]++ == 0)
+			mTree[i] = mComp[i];
 	}
-	
+
 	inline void applyN(int i) {
-		int child = i << 1;
-		mTree[i] = --mCnt[i] ? mComp[i] : i < mN ? mTree[child] + mTree[child | 1] : 0;
+		if (--mCnt[i] == 0)
+		{
+			if (i < mN)
+			{
+				int child = i << 1;
+				mTree[i] = mTree[child] + mTree[child | 1];
+			}
+			else
+				mTree[i] = 0;
+		}
 	}
 
 private:
