@@ -1,18 +1,26 @@
-//여우가 정보섬에 올라온 이유
+//직사각형
 //-------------------------------------------------------------------
 #include <iostream>
-#include <algorithm>
 #include <vector>
-#include <stack>
-typedef std::pair<int, int> pi;
+#include <algorithm>
 typedef std::vector<int> vi;
+typedef std::tuple<int, int, int, int> ti4;
 
-const int DIV = 1'000'000'007;
+struct Data
+{
+	int x, y1, y2;
+	bool sign;
 
-class Fenwick
+	bool operator<(const Data& o) const
+	{
+		return x < o.x;
+	}
+};
+
+class SegmentTree
 {
 public:
-	Fenwick()
+	SegmentTree()
 	{
 		solve();
 	}
@@ -22,82 +30,139 @@ private:
 	{
 		int n;
 		std::cin >> n;
+		std::vector<ti4> tmp(n);
+		std::vector<int*> yposes;
+		yposes.reserve(n);
 
-		std::vector<pi> poses(n);
-		for (auto& [x, y] : poses)
+		n <<= 1;
+		mComp.reserve(n);
+		std::vector<Data> mapes;
+		mapes.reserve(n);
+
+		for (auto& [x1, x2, y1, y2] : tmp)
 		{
-			std::cin >> x >> y;
+			std::cin >> x1 >> x2 >> y1 >> y2;
+			yposes.emplace_back(&y1);
+			yposes.emplace_back(&y2);
 		}
 
-		std::sort(poses.begin(), poses.end(), [](pi& a, pi& b) -> bool
-			{
-				return a.first < b.first;
-			});
+		compress(yposes);
 
-		int order = 1;
-		for (int i = 0; i < n - 1; i++)
+		for (auto& [x1, x2, y1, y2] : tmp)
 		{
-			if (poses[i].first != poses[i + 1].first)
-				poses[i].first = order++;
-			else
-				poses[i].first = order;
+			y1 += mN, y2 += mN;
+			mapes.push_back({ x1, y1, y2, true });
+			mapes.push_back({ x2, y1, y2, false });
 		}
-		poses.back().first = order;
-		mN = order;
-		mFenwick.resize(mN + 1);
 
-		std::sort(poses.begin(), poses.end(), [](auto& a, auto& b) -> bool
-			{
-				return a.second > b.second;
-			});
+		std::sort(mapes.begin(), mapes.end());
 
-		int prevY = poses.front().second;
-		int uppernum = 0, ans = 0;
-		std::stack<int> yTemp;
-		for (auto& [a, b] : poses)
+		long long ans = 0;
+		int nowx = mapes.front().x;
+		for (auto& [x, y1, y2, sign] : mapes)
 		{
-			if (prevY != b)
+			if (x != nowx)
 			{
-				uppernum += int(yTemp.size());
-				while (!yTemp.empty())
-				{
-					update(yTemp.top());
-					yTemp.pop();
-					prevY = b;
-				}
+				ans += (x - nowx) * (long long)mTree[1];
+
+				nowx = x;
 			}
 
-			yTemp.push(a);
-			ans = (ans + ((long long)sum(a - 1) * (uppernum - sum(a)))) % DIV;
+			update(y1, y2, sign);
 		}
 
-		std::cout << ans;
+		std::cout << ans << "\n";
 	}
 
-	inline void update(int idx)
+	void compress(std::vector<int*>& yposes)
 	{
-		for (int i = idx; i <= mN; i += (i & -i))
-			mFenwick[i]++;
+		std::sort(yposes.begin(), yposes.end(), [](auto a, auto b) -> bool
+			{
+				return *a < *b;
+			});
+
+		vi tmp;
+		tmp.reserve(int(yposes.size()));
+		int prev = *(yposes.front()), idx = 0;
+		for (auto ypos : yposes)
+		{
+			if (prev != *ypos)
+			{
+				tmp.push_back(*ypos - prev);
+				prev = *ypos;
+				*ypos = ++idx;
+			}
+			else
+				*ypos = idx;
+		}
+		mN = ((idx + 1) << 1) | 1;
+		mComp.resize(mN);
+		mTree.resize(mN);
+		mCnt.resize(mN);
+
+		mN = (mN >> 1) - 1;
+		std::copy(tmp.begin(), tmp.end(), mComp.begin() + mN);
+
+		for (int i = mN - 1; i > 0; i--)
+		{
+			int child = i << 1;
+			mComp[i] = mComp[child] + mComp[child | 1];
+		}
 	}
 
-	inline int sum(int i)
-	{
-		int ans = 0;
-		for (; i > 0; i -= (i & -i))
-			ans += mFenwick[i];
+	void update(int l, int r, bool sign) {
+		int l0 = l, r0 = r;
 
-		return ans;
+		if (sign)
+		{
+			for (; l != r; l >>= 1, r >>= 1) {
+				if (l & 1) applyP(l++);
+				if (r & 1) applyP(--r);
+			}
+		}
+		else
+		{
+			for (; l != r; l >>= 1, r >>= 1) {
+				if (l & 1) applyN(l++);
+				if (r & 1) applyN(--r);
+			}
+		}
+
+		mTree[l0] = mCnt[l0] ? mComp[l0] : 0;
+		mTree[r0] = mCnt[r0] ? mComp[r0] : 0;
+
+		for (int i = l0 >> 1; i > 0; i >>= 1)
+		{
+			int child = i << 1;
+			mTree[i] = mCnt[i] ? mComp[i] : mTree[child] + mTree[child | 1];
+		}
+
+		for (int i = r0 >> 1; i > 0; i >>= 1)
+		{
+			int child = i << 1;
+			mTree[i] = mCnt[i] ? mComp[i] : mTree[child] + mTree[child | 1];
+		}
+	}
+
+	inline void applyP(int i) {
+		mCnt[i]++;
+		mTree[i] = mComp[i];
+	}
+	
+	inline void applyN(int i) {
+		int child = i << 1;
+		mTree[i] = --mCnt[i] ? mComp[i] : i < mN ? mTree[child] + mTree[child | 1] : 0;
 	}
 
 private:
-	vi mFenwick;
+	vi mTree, mComp, mCnt;
 	int mN;
 
 };
 
 void Solve()
 {
-	Fenwick fen;
+	SegmentTree seg;
 }
 
 int main()
