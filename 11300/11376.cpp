@@ -26,6 +26,11 @@ public:
 
 			if (dfs(i))
 				cnt++;
+
+			mCheck.reset();
+
+			if (dfs(i))
+				cnt++;
 		}
 
 		cout << cnt;
@@ -36,23 +41,20 @@ private:
 	void init()
 	{
 		cin >> mN >> mM;
-		mN = mN << 1;
 		mN++, mM++;
 
 		mPartner.resize(mM, -1);
 		mEdges.resize(mN);
-		for (int i = 1; i < mN; i += 2)
+		for (int i = 1; i < mN; i++)
 		{
 			int T, tmp;
 			cin >> T;
 
-			auto& now1 = mEdges[i];
-			auto& now2 = mEdges[i + 1];
+			auto& now = mEdges[i];
 			while (T--)
 			{
 				cin >> tmp;
-				now1.push_back(tmp);
-				now2.push_back(tmp);
+				now.push_back(tmp);
 			}
 		}
 	}
@@ -77,7 +79,7 @@ private:
 
 
 private:
-	bitset<2001> mCheck;
+	bitset<1001> mCheck;
 	vvi mEdges;
 	vi mPartner;
 	int mN, mM;
